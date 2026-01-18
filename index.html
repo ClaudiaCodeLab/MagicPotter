@@ -1,0 +1,321 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Wizard Camera Test (Live AR + Snapshot Filter)</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; margin: 16px; }
+    .row { display: flex; flex-wrap: wrap; gap: 16px; align-items: start; }
+    .panel { width: min(520px, 100%); }
+    video, canvas, img { width: 100%; height: auto; border-radius: 12px; background: #111; }
+    button { padding: 10px 12px; border-radius: 10px; border: 1px solid #ccc; background: #fff; cursor: pointer; }
+    button:disabled { opacity: .5; cursor: not-allowed; }
+    .controls { display: flex; gap: 10px; flex-wrap: wrap; margin: 10px 0; }
+    .small { color: #555; font-size: 13px; line-height: 1.4; }
+    .badge { display: inline-block; padding: 3px 8px; border-radius: 999px; background: #f2f2f2; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <h2>Wizard Camera Test <span class="badge">Live AR + Snapshot Filter</span></h2>
+  <p class="small">
+    This uses your phone camera. No Harry Potter assets; it’s a generic “wizard” vibe.
+    If the hat looks misaligned, try better lighting and face centered.
+  </p>
+
+  <div class="controls">
+    <button id="btnStart">Start camera</button>
+    <button id="btnStop" disabled>Stop</button>
+    <button id="btnSnap" disabled>Take snapshot</button>
+    <button id="btnToggleAR" disabled>Toggle AR hat</button>
+  </div>
+
+  <div class="row">
+    <div class="panel">
+      <h3>Mode A: Live AR (hat tracks head)</h3>
+      <video id="video" playsinline autoplay muted></video>
+      <canvas id="overlay"></canvas>
+      <p class="small">The canvas draws the hat + sparkles on top of the live video.</p>
+    </div>
+
+    <div class="panel">
+      <h3>Mode B: Snapshot + magic filter</h3>
+      <canvas id="photo"></canvas>
+      <p class="small">Snapshot is processed with a “magic” color grade + glow + vignette.</p>
+    </div>
+  </div>
+
+  <!-- MediaPipe FaceMesh (CDN) -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js"></script>
+
+  <script>
+    const video = document.getElementById('video');
+    const overlay = document.getElementById('overlay');
+    const octx = overlay.getContext('2d');
+
+    const photo = document.getElementById('photo');
+    const pctx = photo.getContext('2d');
+
+    const btnStart = document.getElementById('btnStart');
+    const btnStop = document.getElementById('btnStop');
+    const btnSnap = document.getElementById('btnSnap');
+    const btnToggleAR = document.getElementById('btnToggleAR');
+
+    let stream = null;
+    let faceMesh = null;
+    let lastLandmarks = null;
+    let arEnabled = true;
+    let rafId = null;
+
+    // --- Simple "wizard hat" drawn with Canvas (no external images) ---
+    function drawHat(ctx, x, y, w, h, tiltRad) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(tiltRad);
+
+      // Brim
+      ctx.beginPath();
+      ctx.ellipse(0, 0, w * 0.55, h * 0.18, 0, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(20, 20, 30, 0.92)';
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+      ctx.lineWidth = Math.max(2, w * 0.01);
+      ctx.stroke();
+
+      // Cone
+      ctx.beginPath();
+      ctx.moveTo(-w * 0.28, -h * 0.02);
+      ctx.quadraticCurveTo(0, -h * 1.1, w * 0.28, -h * 0.02);
+      ctx.closePath();
+      const grad = ctx.createLinearGradient(0, -h * 1.1, 0, 0);
+      grad.addColorStop(0, 'rgba(40, 40, 60, 0.98)');
+      grad.addColorStop(1, 'rgba(10, 10, 20, 0.98)');
+      ctx.fillStyle = grad;
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,0.10)';
+      ctx.stroke();
+
+      // Band
+      ctx.fillStyle = 'rgba(120, 70, 200, 0.65)';
+      ctx.fillRect(-w * 0.23, -h * 0.12, w * 0.46, h * 0.08);
+
+      // Star sparkles on hat
+      for (let i = 0; i < 6; i++) {
+        const sx = (Math.random() - 0.5) * w * 0.35;
+        const sy = -h * (0.25 + Math.random() * 0.55);
+        const r = w * (0.01 + Math.random() * 0.02);
+        ctx.beginPath();
+        ctx.arc(sx, sy, r, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(200, 160, 255, 0.8)';
+        ctx.fill();
+      }
+
+      ctx.restore();
+    }
+
+    function drawSparkles(ctx, cx, cy, radius) {
+      const n = 18;
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      for (let i = 0; i < n; i++) {
+        const a = Math.random() * Math.PI * 2;
+        const r = Math.random() * radius;
+        const x = cx + Math.cos(a) * r;
+        const y = cy + Math.sin(a) * r;
+        const s = 1 + Math.random() * 2.5;
+
+        ctx.beginPath();
+        ctx.arc(x, y, s, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(170, 120, 255, 0.35)';
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+
+    // --- Snapshot "magic" filter ---
+    function applyMagicFilterToPhotoCanvas() {
+      // 1) Slight color grade + contrast
+      // (This is a simple approximation using canvas filters.)
+      pctx.save();
+      pctx.filter = 'contrast(1.12) saturate(1.25) brightness(1.03) hue-rotate(8deg)';
+      const imgData = pctx.getImageData(0, 0, photo.width, photo.height); // get current
+      // redraw using filter by drawing the existing canvas onto itself via temp
+      const temp = document.createElement('canvas');
+      temp.width = photo.width; temp.height = photo.height;
+      const tctx = temp.getContext('2d');
+      tctx.putImageData(imgData, 0, 0);
+      pctx.clearRect(0, 0, photo.width, photo.height);
+      pctx.drawImage(temp, 0, 0);
+      pctx.restore();
+
+      // 2) Soft glow: blur + screen blend
+      pctx.save();
+      pctx.globalCompositeOperation = 'screen';
+      pctx.filter = 'blur(10px) brightness(1.08)';
+      pctx.drawImage(photo, 0, 0);
+      pctx.restore();
+
+      // 3) Vignette
+      pctx.save();
+      const grd = pctx.createRadialGradient(
+        photo.width * 0.5, photo.height * 0.5, Math.min(photo.width, photo.height) * 0.1,
+        photo.width * 0.5, photo.height * 0.5, Math.min(photo.width, photo.height) * 0.65
+      );
+      grd.addColorStop(0, 'rgba(0,0,0,0)');
+      grd.addColorStop(1, 'rgba(0,0,0,0.35)');
+      pctx.fillStyle = grd;
+      pctx.fillRect(0, 0, photo.width, photo.height);
+      pctx.restore();
+
+      // 4) A few sparkles
+      drawSparkles(pctx, photo.width * 0.55, photo.height * 0.35, Math.min(photo.width, photo.height) * 0.22);
+    }
+
+    // --- MediaPipe FaceMesh setup ---
+    async function setupFaceMesh() {
+      faceMesh = new FaceMesh.FaceMesh({
+        locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
+      });
+
+      faceMesh.setOptions({
+        maxNumFaces: 1,
+        refineLandmarks: true,
+        minDetectionConfidence: 0.6,
+        minTrackingConfidence: 0.6
+      });
+
+      faceMesh.onResults((results) => {
+        if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
+          lastLandmarks = results.multiFaceLandmarks[0];
+        } else {
+          lastLandmarks = null;
+        }
+      });
+    }
+
+    function resizeCanvasesToVideo() {
+      const w = video.videoWidth;
+      const h = video.videoHeight;
+      if (!w || !h) return;
+      overlay.width = w;
+      overlay.height = h;
+    }
+
+    async function processFrame() {
+      if (!stream) return;
+
+      resizeCanvasesToVideo();
+
+      // Run FaceMesh on current frame
+      await faceMesh.send({ image: video });
+
+      // Draw overlay
+      octx.clearRect(0, 0, overlay.width, overlay.height);
+
+      if (arEnabled && lastLandmarks) {
+        // Landmark indices: approximate forehead/eyes for placement
+        // 10 = forehead area (approx), 33 = left eye outer, 263 = right eye outer
+        const p10 = lastLandmarks[10];
+        const p33 = lastLandmarks[33];
+        const p263 = lastLandmarks[263];
+
+        const xFore = p10.x * overlay.width;
+        const yFore = p10.y * overlay.height;
+
+        const xL = p33.x * overlay.width;
+        const yL = p33.y * overlay.height;
+        const xR = p263.x * overlay.width;
+        const yR = p263.y * overlay.height;
+
+        const eyeDx = xR - xL;
+        const eyeDy = yR - yL;
+        const eyeDist = Math.hypot(eyeDx, eyeDy);
+
+        const tilt = Math.atan2(eyeDy, eyeDx);
+
+        // Hat size relative to eye distance
+        const hatW = eyeDist * 2.0;
+        const hatH = eyeDist * 1.6;
+
+        // Position hat a bit above forehead
+        const hatX = xFore;
+        const hatY = yFore - hatH * 0.35;
+
+        drawHat(octx, hatX, hatY, hatW, hatH, tilt);
+        drawSparkles(octx, hatX, hatY - hatH * 0.2, hatW * 0.35);
+      }
+
+      rafId = requestAnimationFrame(processFrame);
+    }
+
+    async function startCamera() {
+      stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'user' }, audio: false
+      });
+      video.srcObject = stream;
+
+      await video.play();
+
+      await setupFaceMesh();
+
+      btnStop.disabled = false;
+      btnSnap.disabled = false;
+      btnToggleAR.disabled = false;
+      btnStart.disabled = true;
+
+      // Ensure canvases match after metadata available
+      await new Promise((res) => {
+        if (video.videoWidth) return res();
+        video.onloadedmetadata = () => res();
+      });
+
+      resizeCanvasesToVideo();
+      processFrame();
+    }
+
+    function stopCamera() {
+      if (rafId) cancelAnimationFrame(rafId);
+      rafId = null;
+
+      if (stream) {
+        stream.getTracks().forEach(t => t.stop());
+        stream = null;
+      }
+      video.srcObject = null;
+
+      btnStop.disabled = true;
+      btnSnap.disabled = true;
+      btnToggleAR.disabled = true;
+      btnStart.disabled = false;
+
+      octx.clearRect(0, 0, overlay.width, overlay.height);
+    }
+
+    function takeSnapshot() {
+      if (!video.videoWidth) return;
+
+      // Draw current frame into photo canvas (same aspect)
+      photo.width = video.videoWidth;
+      photo.height = video.videoHeight;
+      pctx.drawImage(video, 0, 0, photo.width, photo.height);
+
+      // Apply filter
+      applyMagicFilterToPhotoCanvas();
+    }
+
+    btnStart.addEventListener('click', () => startCamera().catch(err => {
+      console.error(err);
+      alert('Camera start failed: ' + err.message + '\\nTip: use HTTPS or localhost and allow permissions.');
+    }));
+
+    btnStop.addEventListener('click', stopCamera);
+
+    btnSnap.addEventListener('click', takeSnapshot);
+
+    btnToggleAR.addEventListener('click', () => {
+      arEnabled = !arEnabled;
+      btnToggleAR.textContent = arEnabled ? 'Toggle AR hat' : 'Enable AR hat';
+    });
+  </script>
+</body>
+</html>
