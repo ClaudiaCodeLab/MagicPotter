@@ -1,0 +1,337 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <meta http-equiv="Content-Style-Type" content="text/css">
+  <title></title>
+  <meta name="Generator" content="Cocoa HTML Writer">
+  <meta name="CocoaVersion" content="2575.7">
+  <style type="text/css">
+    p.p1 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px Helvetica}
+    p.p2 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px Helvetica; min-height: 14.0px}
+  </style>
+</head>
+<body>
+<p class="p1">&lt;!doctype html&gt;</p>
+<p class="p1">&lt;html lang="en"&gt;</p>
+<p class="p1">&lt;head&gt;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>&lt;meta charset="utf-8" /&gt;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>&lt;meta name="viewport" content="width=device-width,initial-scale=1" /&gt;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>&lt;title&gt;Wizard Camera Test (Live AR + Snapshot Filter)&lt;/title&gt;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>&lt;style&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; margin: 16px; }</p>
+<p class="p1"><span class="Apple-converted-space">    </span>.row { display: flex; flex-wrap: wrap; gap: 16px; align-items: start; }</p>
+<p class="p1"><span class="Apple-converted-space">    </span>.panel { width: min(520px, 100%); }</p>
+<p class="p1"><span class="Apple-converted-space">    </span>video, canvas, img { width: 100%; height: auto; border-radius: 12px; background: #111; }</p>
+<p class="p1"><span class="Apple-converted-space">    </span>button { padding: 10px 12px; border-radius: 10px; border: 1px solid #ccc; background: #fff; cursor: pointer; }</p>
+<p class="p1"><span class="Apple-converted-space">    </span>button:disabled { opacity: .5; cursor: not-allowed; }</p>
+<p class="p1"><span class="Apple-converted-space">    </span>.controls { display: flex; gap: 10px; flex-wrap: wrap; margin: 10px 0; }</p>
+<p class="p1"><span class="Apple-converted-space">    </span>.small { color: #555; font-size: 13px; line-height: 1.4; }</p>
+<p class="p1"><span class="Apple-converted-space">    </span>.badge { display: inline-block; padding: 3px 8px; border-radius: 999px; background: #f2f2f2; font-size: 12px; }</p>
+<p class="p1"><span class="Apple-converted-space">  </span>&lt;/style&gt;</p>
+<p class="p1">&lt;/head&gt;</p>
+<p class="p1">&lt;body&gt;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>&lt;h2&gt;Wizard Camera Test &lt;span class="badge"&gt;Live AR + Snapshot Filter&lt;/span&gt;&lt;/h2&gt;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>&lt;p class="small"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>This uses your phone camera. No Harry Potter assets; it’s a generic “wizard” vibe.</p>
+<p class="p1"><span class="Apple-converted-space">    </span>If the hat looks misaligned, try better lighting and face centered.</p>
+<p class="p1"><span class="Apple-converted-space">  </span>&lt;/p&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">  </span>&lt;div class="controls"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;button id="btnStart"&gt;Start camera&lt;/button&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;button id="btnStop" disabled&gt;Stop&lt;/button&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;button id="btnSnap" disabled&gt;Take snapshot&lt;/button&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;button id="btnToggleAR" disabled&gt;Toggle AR hat&lt;/button&gt;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>&lt;/div&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">  </span>&lt;div class="row"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;div class="panel"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;h3&gt;Mode A: Live AR (hat tracks head)&lt;/h3&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;video id="video" playsinline autoplay muted&gt;&lt;/video&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;canvas id="overlay"&gt;&lt;/canvas&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;p class="small"&gt;The canvas draws the hat + sparkles on top of the live video.&lt;/p&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;div class="panel"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;h3&gt;Mode B: Snapshot + magic filter&lt;/h3&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;canvas id="photo"&gt;&lt;/canvas&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;p class="small"&gt;Snapshot is processed with a “magic” color grade + glow + vignette.&lt;/p&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>&lt;/div&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">  </span>&lt;!-- MediaPipe FaceMesh (CDN) --&gt;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>&lt;script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js"&gt;&lt;/script&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">  </span>&lt;script&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>const video = document.getElementById('video');</p>
+<p class="p1"><span class="Apple-converted-space">    </span>const overlay = document.getElementById('overlay');</p>
+<p class="p1"><span class="Apple-converted-space">    </span>const octx = overlay.getContext('2d');</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>const photo = document.getElementById('photo');</p>
+<p class="p1"><span class="Apple-converted-space">    </span>const pctx = photo.getContext('2d');</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>const btnStart = document.getElementById('btnStart');</p>
+<p class="p1"><span class="Apple-converted-space">    </span>const btnStop = document.getElementById('btnStop');</p>
+<p class="p1"><span class="Apple-converted-space">    </span>const btnSnap = document.getElementById('btnSnap');</p>
+<p class="p1"><span class="Apple-converted-space">    </span>const btnToggleAR = document.getElementById('btnToggleAR');</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>let stream = null;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>let faceMesh = null;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>let lastLandmarks = null;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>let arEnabled = true;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>let rafId = null;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>// --- Simple "wizard hat" drawn with Canvas (no external images) ---</p>
+<p class="p1"><span class="Apple-converted-space">    </span>function drawHat(ctx, x, y, w, h, tiltRad) {</p>
+<p class="p1"><span class="Apple-converted-space">      </span>ctx.save();</p>
+<p class="p1"><span class="Apple-converted-space">      </span>ctx.translate(x, y);</p>
+<p class="p1"><span class="Apple-converted-space">      </span>ctx.rotate(tiltRad);</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>// Brim</p>
+<p class="p1"><span class="Apple-converted-space">      </span>ctx.beginPath();</p>
+<p class="p1"><span class="Apple-converted-space">      </span>ctx.ellipse(0, 0, w * 0.55, h * 0.18, 0, 0, Math.PI * 2);</p>
+<p class="p1"><span class="Apple-converted-space">      </span>ctx.fillStyle = 'rgba(20, 20, 30, 0.92)';</p>
+<p class="p1"><span class="Apple-converted-space">      </span>ctx.fill();</p>
+<p class="p1"><span class="Apple-converted-space">      </span>ctx.strokeStyle = 'rgba(255,255,255,0.12)';</p>
+<p class="p1"><span class="Apple-converted-space">      </span>ctx.lineWidth = Math.max(2, w * 0.01);</p>
+<p class="p1"><span class="Apple-converted-space">      </span>ctx.stroke();</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>// Cone</p>
+<p class="p1"><span class="Apple-converted-space">      </span>ctx.beginPath();</p>
+<p class="p1"><span class="Apple-converted-space">      </span>ctx.moveTo(-w * 0.28, -h * 0.02);</p>
+<p class="p1"><span class="Apple-converted-space">      </span>ctx.quadraticCurveTo(0, -h * 1.1, w * 0.28, -h * 0.02);</p>
+<p class="p1"><span class="Apple-converted-space">      </span>ctx.closePath();</p>
+<p class="p1"><span class="Apple-converted-space">      </span>const grad = ctx.createLinearGradient(0, -h * 1.1, 0, 0);</p>
+<p class="p1"><span class="Apple-converted-space">      </span>grad.addColorStop(0, 'rgba(40, 40, 60, 0.98)');</p>
+<p class="p1"><span class="Apple-converted-space">      </span>grad.addColorStop(1, 'rgba(10, 10, 20, 0.98)');</p>
+<p class="p1"><span class="Apple-converted-space">      </span>ctx.fillStyle = grad;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>ctx.fill();</p>
+<p class="p1"><span class="Apple-converted-space">      </span>ctx.strokeStyle = 'rgba(255,255,255,0.10)';</p>
+<p class="p1"><span class="Apple-converted-space">      </span>ctx.stroke();</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>// Band</p>
+<p class="p1"><span class="Apple-converted-space">      </span>ctx.fillStyle = 'rgba(120, 70, 200, 0.65)';</p>
+<p class="p1"><span class="Apple-converted-space">      </span>ctx.fillRect(-w * 0.23, -h * 0.12, w * 0.46, h * 0.08);</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>// Star sparkles on hat</p>
+<p class="p1"><span class="Apple-converted-space">      </span>for (let i = 0; i &lt; 6; i++) {</p>
+<p class="p1"><span class="Apple-converted-space">        </span>const sx = (Math.random() - 0.5) * w * 0.35;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>const sy = -h * (0.25 + Math.random() * 0.55);</p>
+<p class="p1"><span class="Apple-converted-space">        </span>const r = w * (0.01 + Math.random() * 0.02);</p>
+<p class="p1"><span class="Apple-converted-space">        </span>ctx.beginPath();</p>
+<p class="p1"><span class="Apple-converted-space">        </span>ctx.arc(sx, sy, r, 0, Math.PI * 2);</p>
+<p class="p1"><span class="Apple-converted-space">        </span>ctx.fillStyle = 'rgba(200, 160, 255, 0.8)';</p>
+<p class="p1"><span class="Apple-converted-space">        </span>ctx.fill();</p>
+<p class="p1"><span class="Apple-converted-space">      </span>}</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>ctx.restore();</p>
+<p class="p1"><span class="Apple-converted-space">    </span>}</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>function drawSparkles(ctx, cx, cy, radius) {</p>
+<p class="p1"><span class="Apple-converted-space">      </span>const n = 18;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>ctx.save();</p>
+<p class="p1"><span class="Apple-converted-space">      </span>ctx.globalCompositeOperation = 'lighter';</p>
+<p class="p1"><span class="Apple-converted-space">      </span>for (let i = 0; i &lt; n; i++) {</p>
+<p class="p1"><span class="Apple-converted-space">        </span>const a = Math.random() * Math.PI * 2;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>const r = Math.random() * radius;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>const x = cx + Math.cos(a) * r;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>const y = cy + Math.sin(a) * r;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>const s = 1 + Math.random() * 2.5;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">        </span>ctx.beginPath();</p>
+<p class="p1"><span class="Apple-converted-space">        </span>ctx.arc(x, y, s, 0, Math.PI * 2);</p>
+<p class="p1"><span class="Apple-converted-space">        </span>ctx.fillStyle = 'rgba(170, 120, 255, 0.35)';</p>
+<p class="p1"><span class="Apple-converted-space">        </span>ctx.fill();</p>
+<p class="p1"><span class="Apple-converted-space">      </span>}</p>
+<p class="p1"><span class="Apple-converted-space">      </span>ctx.restore();</p>
+<p class="p1"><span class="Apple-converted-space">    </span>}</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>// --- Snapshot "magic" filter ---</p>
+<p class="p1"><span class="Apple-converted-space">    </span>function applyMagicFilterToPhotoCanvas() {</p>
+<p class="p1"><span class="Apple-converted-space">      </span>// 1) Slight color grade + contrast</p>
+<p class="p1"><span class="Apple-converted-space">      </span>// (This is a simple approximation using canvas filters.)</p>
+<p class="p1"><span class="Apple-converted-space">      </span>pctx.save();</p>
+<p class="p1"><span class="Apple-converted-space">      </span>pctx.filter = 'contrast(1.12) saturate(1.25) brightness(1.03) hue-rotate(8deg)';</p>
+<p class="p1"><span class="Apple-converted-space">      </span>const imgData = pctx.getImageData(0, 0, photo.width, photo.height); // get current</p>
+<p class="p1"><span class="Apple-converted-space">      </span>// redraw using filter by drawing the existing canvas onto itself via temp</p>
+<p class="p1"><span class="Apple-converted-space">      </span>const temp = document.createElement('canvas');</p>
+<p class="p1"><span class="Apple-converted-space">      </span>temp.width = photo.width; temp.height = photo.height;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>const tctx = temp.getContext('2d');</p>
+<p class="p1"><span class="Apple-converted-space">      </span>tctx.putImageData(imgData, 0, 0);</p>
+<p class="p1"><span class="Apple-converted-space">      </span>pctx.clearRect(0, 0, photo.width, photo.height);</p>
+<p class="p1"><span class="Apple-converted-space">      </span>pctx.drawImage(temp, 0, 0);</p>
+<p class="p1"><span class="Apple-converted-space">      </span>pctx.restore();</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>// 2) Soft glow: blur + screen blend</p>
+<p class="p1"><span class="Apple-converted-space">      </span>pctx.save();</p>
+<p class="p1"><span class="Apple-converted-space">      </span>pctx.globalCompositeOperation = 'screen';</p>
+<p class="p1"><span class="Apple-converted-space">      </span>pctx.filter = 'blur(10px) brightness(1.08)';</p>
+<p class="p1"><span class="Apple-converted-space">      </span>pctx.drawImage(photo, 0, 0);</p>
+<p class="p1"><span class="Apple-converted-space">      </span>pctx.restore();</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>// 3) Vignette</p>
+<p class="p1"><span class="Apple-converted-space">      </span>pctx.save();</p>
+<p class="p1"><span class="Apple-converted-space">      </span>const grd = pctx.createRadialGradient(</p>
+<p class="p1"><span class="Apple-converted-space">        </span>photo.width * 0.5, photo.height * 0.5, Math.min(photo.width, photo.height) * 0.1,</p>
+<p class="p1"><span class="Apple-converted-space">        </span>photo.width * 0.5, photo.height * 0.5, Math.min(photo.width, photo.height) * 0.65</p>
+<p class="p1"><span class="Apple-converted-space">      </span>);</p>
+<p class="p1"><span class="Apple-converted-space">      </span>grd.addColorStop(0, 'rgba(0,0,0,0)');</p>
+<p class="p1"><span class="Apple-converted-space">      </span>grd.addColorStop(1, 'rgba(0,0,0,0.35)');</p>
+<p class="p1"><span class="Apple-converted-space">      </span>pctx.fillStyle = grd;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>pctx.fillRect(0, 0, photo.width, photo.height);</p>
+<p class="p1"><span class="Apple-converted-space">      </span>pctx.restore();</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>// 4) A few sparkles</p>
+<p class="p1"><span class="Apple-converted-space">      </span>drawSparkles(pctx, photo.width * 0.55, photo.height * 0.35, Math.min(photo.width, photo.height) * 0.22);</p>
+<p class="p1"><span class="Apple-converted-space">    </span>}</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>// --- MediaPipe FaceMesh setup ---</p>
+<p class="p1"><span class="Apple-converted-space">    </span>async function setupFaceMesh() {</p>
+<p class="p1"><span class="Apple-converted-space">      </span>faceMesh = new FaceMesh.FaceMesh({</p>
+<p class="p1"><span class="Apple-converted-space">        </span>locateFile: (file) =&gt; `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`</p>
+<p class="p1"><span class="Apple-converted-space">      </span>});</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>faceMesh.setOptions({</p>
+<p class="p1"><span class="Apple-converted-space">        </span>maxNumFaces: 1,</p>
+<p class="p1"><span class="Apple-converted-space">        </span>refineLandmarks: true,</p>
+<p class="p1"><span class="Apple-converted-space">        </span>minDetectionConfidence: 0.6,</p>
+<p class="p1"><span class="Apple-converted-space">        </span>minTrackingConfidence: 0.6</p>
+<p class="p1"><span class="Apple-converted-space">      </span>});</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>faceMesh.onResults((results) =&gt; {</p>
+<p class="p1"><span class="Apple-converted-space">        </span>if (results.multiFaceLandmarks &amp;&amp; results.multiFaceLandmarks.length &gt; 0) {</p>
+<p class="p1"><span class="Apple-converted-space">          </span>lastLandmarks = results.multiFaceLandmarks[0];</p>
+<p class="p1"><span class="Apple-converted-space">        </span>} else {</p>
+<p class="p1"><span class="Apple-converted-space">          </span>lastLandmarks = null;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>}</p>
+<p class="p1"><span class="Apple-converted-space">      </span>});</p>
+<p class="p1"><span class="Apple-converted-space">    </span>}</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>function resizeCanvasesToVideo() {</p>
+<p class="p1"><span class="Apple-converted-space">      </span>const w = video.videoWidth;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>const h = video.videoHeight;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>if (!w || !h) return;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>overlay.width = w;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>overlay.height = h;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>}</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>async function processFrame() {</p>
+<p class="p1"><span class="Apple-converted-space">      </span>if (!stream) return;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>resizeCanvasesToVideo();</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>// Run FaceMesh on current frame</p>
+<p class="p1"><span class="Apple-converted-space">      </span>await faceMesh.send({ image: video });</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>// Draw overlay</p>
+<p class="p1"><span class="Apple-converted-space">      </span>octx.clearRect(0, 0, overlay.width, overlay.height);</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>if (arEnabled &amp;&amp; lastLandmarks) {</p>
+<p class="p1"><span class="Apple-converted-space">        </span>// Landmark indices: approximate forehead/eyes for placement</p>
+<p class="p1"><span class="Apple-converted-space">        </span>// 10 = forehead area (approx), 33 = left eye outer, 263 = right eye outer</p>
+<p class="p1"><span class="Apple-converted-space">        </span>const p10 = lastLandmarks[10];</p>
+<p class="p1"><span class="Apple-converted-space">        </span>const p33 = lastLandmarks[33];</p>
+<p class="p1"><span class="Apple-converted-space">        </span>const p263 = lastLandmarks[263];</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">        </span>const xFore = p10.x * overlay.width;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>const yFore = p10.y * overlay.height;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">        </span>const xL = p33.x * overlay.width;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>const yL = p33.y * overlay.height;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>const xR = p263.x * overlay.width;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>const yR = p263.y * overlay.height;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">        </span>const eyeDx = xR - xL;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>const eyeDy = yR - yL;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>const eyeDist = Math.hypot(eyeDx, eyeDy);</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">        </span>const tilt = Math.atan2(eyeDy, eyeDx);</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">        </span>// Hat size relative to eye distance</p>
+<p class="p1"><span class="Apple-converted-space">        </span>const hatW = eyeDist * 2.0;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>const hatH = eyeDist * 1.6;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">        </span>// Position hat a bit above forehead</p>
+<p class="p1"><span class="Apple-converted-space">        </span>const hatX = xFore;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>const hatY = yFore - hatH * 0.35;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">        </span>drawHat(octx, hatX, hatY, hatW, hatH, tilt);</p>
+<p class="p1"><span class="Apple-converted-space">        </span>drawSparkles(octx, hatX, hatY - hatH * 0.2, hatW * 0.35);</p>
+<p class="p1"><span class="Apple-converted-space">      </span>}</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>rafId = requestAnimationFrame(processFrame);</p>
+<p class="p1"><span class="Apple-converted-space">    </span>}</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>async function startCamera() {</p>
+<p class="p1"><span class="Apple-converted-space">      </span>stream = await navigator.mediaDevices.getUserMedia({</p>
+<p class="p1"><span class="Apple-converted-space">        </span>video: { facingMode: 'user' }, audio: false</p>
+<p class="p1"><span class="Apple-converted-space">      </span>});</p>
+<p class="p1"><span class="Apple-converted-space">      </span>video.srcObject = stream;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>await video.play();</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>await setupFaceMesh();</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>btnStop.disabled = false;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>btnSnap.disabled = false;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>btnToggleAR.disabled = false;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>btnStart.disabled = true;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>// Ensure canvases match after metadata available</p>
+<p class="p1"><span class="Apple-converted-space">      </span>await new Promise((res) =&gt; {</p>
+<p class="p1"><span class="Apple-converted-space">        </span>if (video.videoWidth) return res();</p>
+<p class="p1"><span class="Apple-converted-space">        </span>video.onloadedmetadata = () =&gt; res();</p>
+<p class="p1"><span class="Apple-converted-space">      </span>});</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>resizeCanvasesToVideo();</p>
+<p class="p1"><span class="Apple-converted-space">      </span>processFrame();</p>
+<p class="p1"><span class="Apple-converted-space">    </span>}</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>function stopCamera() {</p>
+<p class="p1"><span class="Apple-converted-space">      </span>if (rafId) cancelAnimationFrame(rafId);</p>
+<p class="p1"><span class="Apple-converted-space">      </span>rafId = null;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>if (stream) {</p>
+<p class="p1"><span class="Apple-converted-space">        </span>stream.getTracks().forEach(t =&gt; t.stop());</p>
+<p class="p1"><span class="Apple-converted-space">        </span>stream = null;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>}</p>
+<p class="p1"><span class="Apple-converted-space">      </span>video.srcObject = null;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>btnStop.disabled = true;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>btnSnap.disabled = true;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>btnToggleAR.disabled = true;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>btnStart.disabled = false;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>octx.clearRect(0, 0, overlay.width, overlay.height);</p>
+<p class="p1"><span class="Apple-converted-space">    </span>}</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>function takeSnapshot() {</p>
+<p class="p1"><span class="Apple-converted-space">      </span>if (!video.videoWidth) return;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>// Draw current frame into photo canvas (same aspect)</p>
+<p class="p1"><span class="Apple-converted-space">      </span>photo.width = video.videoWidth;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>photo.height = video.videoHeight;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>pctx.drawImage(video, 0, 0, photo.width, photo.height);</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>// Apply filter</p>
+<p class="p1"><span class="Apple-converted-space">      </span>applyMagicFilterToPhotoCanvas();</p>
+<p class="p1"><span class="Apple-converted-space">    </span>}</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>btnStart.addEventListener('click', () =&gt; startCamera().catch(err =&gt; {</p>
+<p class="p1"><span class="Apple-converted-space">      </span>console.error(err);</p>
+<p class="p1"><span class="Apple-converted-space">      </span>alert('Camera start failed: ' + err.message + '\\nTip: use HTTPS or localhost and allow permissions.');</p>
+<p class="p1"><span class="Apple-converted-space">    </span>}));</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>btnStop.addEventListener('click', stopCamera);</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>btnSnap.addEventListener('click', takeSnapshot);</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>btnToggleAR.addEventListener('click', () =&gt; {</p>
+<p class="p1"><span class="Apple-converted-space">      </span>arEnabled = !arEnabled;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>btnToggleAR.textContent = arEnabled ? 'Toggle AR hat' : 'Enable AR hat';</p>
+<p class="p1"><span class="Apple-converted-space">    </span>});</p>
+<p class="p1"><span class="Apple-converted-space">  </span>&lt;/script&gt;</p>
+<p class="p1">&lt;/body&gt;</p>
+<p class="p1">&lt;/html&gt;</p>
+</body>
+</html>
